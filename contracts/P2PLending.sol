@@ -68,7 +68,15 @@ contract P2PLending is IP2PLending {
     /**
      * @dev See {IP2PLending-loanRequests}.
      */
-    function loanRequests() view public returns(Request[] memory){}
+    function loanRequests() view public returns(Request[] memory){
+        Request[] memory AllRequests;
+        
+        for (uint256 i = 0; i <= _requestIdTracker.current(); i++) {
+            AllRequests.push(_loanRequests(i));
+        }
+
+        return AllRequests;
+    }
 
     /**
      * @dev See {IP2PLending-loanOffer}.
@@ -80,7 +88,15 @@ contract P2PLending is IP2PLending {
     /**
      * @dev See {IP2PLending-loanOffers}.
      */
-    function loanOffers() view public returns(Request[] memory){}
+    function loanOffers() view public returns(Request[] memory){
+        Request[] memory AllOffers;
+
+        for (uint i = 0; i <= _offerIdTracker.current(); i++) {
+            AllOffers.push(_loanOffers(i));
+        }
+
+        return AllOffers;
+    }
 
     /**
      * @dev See {IP2PLending-newLoanRequest}.
