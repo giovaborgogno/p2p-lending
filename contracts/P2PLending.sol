@@ -104,15 +104,16 @@ contract P2PLending is IP2PLending {
     function newLoanRequest(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId) returns(uint256){
 
         uint256 _id = _requestIdTracker.current();
-        Request memory _newRequest = Request(
-            _id,
-            _loanTokenId,
-            _loanAmount,
-            _interest,
-            _loanDuration,
-            msg.sender,
-            true
-        );
+        Request memory _newRequest = Request({
+            id: _id,
+            loanTokenId: _loanTokenId,
+            loanAmount: _loanAmount,
+            interest: _interest,
+            loanDuration: _loanDuration,
+            borrower: msg.sender,
+            lender: address(0),
+            available: true
+        });
 
         _loanRequests[_id] = _newRequest;
 
@@ -141,15 +142,16 @@ contract P2PLending is IP2PLending {
      */
     function newLoanOffer(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId) returns(uint256){
         uint256 _id = _offerIdTracker.current();
-        Request memory _newOffer = Request(
-            _id,
-            _loanTokenId,
-            _loanAmount,
-            _interest,
-            _loanDuration,
-            msg.sender,
-            true
-        );
+        Request memory _newRequest = Request({
+            id: _id,
+            loanTokenId: _loanTokenId,
+            loanAmount: _loanAmount,
+            interest: _interest,
+            loanDuration: _loanDuration,
+            borrower: address(0),
+            lender: msg.sender,
+            available: true
+        });
 
         _loanOffers[_id] = _newOffer;
 
@@ -189,7 +191,7 @@ contract P2PLending is IP2PLending {
         uint256 _repaymentAmount = _calculateRepaymentAmount(_request.loanAmount, _request.interest);
 
         LoanStruct memory _loanStruct = LoanStruct({
-            loanToken: _loanTokens[_request._loanTokenId],
+            loanToken: _loanTokens[_request.loanTokenId],
             loanAmount: _request.loanAmount,
             interest: _request.interest,
             repaymentAmount: _repaymentAmount,
