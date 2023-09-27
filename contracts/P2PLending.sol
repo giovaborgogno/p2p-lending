@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
@@ -69,10 +69,11 @@ contract P2PLending is IP2PLending {
      * @dev See {IP2PLending-loanRequests}.
      */
     function loanRequests() view public returns(Request[] memory){
-        Request[] memory AllRequests;
+        uint256 arrLength = _requestIdTracker.current() + 1;
+        Request[] memory AllRequests = new Request[](arrLength);
         
-        for (uint256 i = 0; i <= _requestIdTracker.current(); i++) {
-            AllRequests.push(_loanRequests(i));
+        for (uint256 i = 0; i < arrLength; i++) {
+            AllRequests[i] = _loanRequests[i];
         }
 
         return AllRequests;
@@ -89,10 +90,11 @@ contract P2PLending is IP2PLending {
      * @dev See {IP2PLending-loanOffers}.
      */
     function loanOffers() view public returns(Request[] memory){
-        Request[] memory AllOffers;
-
-        for (uint i = 0; i <= _offerIdTracker.current(); i++) {
-            AllOffers.push(_loanOffers(i));
+        uint256 arrLength = _offerIdTracker.current() + 1;
+        Request[] memory AllOffers = new Request[](arrLength);
+        
+        for (uint256 i = 0; i < arrLength; i++) {
+            AllOffers[i] = _loanOffers[i];
         }
 
         return AllOffers;
@@ -142,7 +144,7 @@ contract P2PLending is IP2PLending {
      */
     function newLoanOffer(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId) returns(uint256){
         uint256 _id = _offerIdTracker.current();
-        Request memory _newRequest = Request({
+        Request memory _newOffer = Request({
             id: _id,
             loanTokenId: _loanTokenId,
             loanAmount: _loanAmount,
@@ -161,7 +163,7 @@ contract P2PLending is IP2PLending {
     /**
      * @dev See {IP2PLending-acceptLoanOffer}.
      */
-    function acceptLoanOffer(uint256 _loanOffertId) public {}
+    function acceptLoanOffer(uint256 _loanOffertId) public returns(ILoan){}
 
     /** @dev Calculate the Weis Collateral Amount using Chain Link Price Feed Contracts.
      * @param _loanAmount Loan Amount.
@@ -185,9 +187,9 @@ contract P2PLending is IP2PLending {
      * @param _request Request.
      *
      */
-    function _newLoan(Request _request)internal returns(ILoan){
+    function _newLoan(Request memory _request)internal returns(ILoan){
 
-        uint256 _collateralAmount = _calculateCollateralAmount(_request.loanAmount, _request._loanTokenId);
+        uint256 _collateralAmount = _calculateCollateralAmount(_request.loanAmount, _request.loanTokenId);
         uint256 _repaymentAmount = _calculateRepaymentAmount(_request.loanAmount, _request.interest);
 
         LoanStruct memory _loanStruct = LoanStruct({
@@ -203,7 +205,7 @@ contract P2PLending is IP2PLending {
             active: false
         });
 
-        Loan memory _loan = new Loan(_loanStruct);
+        Loan _loan = new Loan(_loanStruct);
 
         emit LoanCreated(ILoan(_loan), _loanStruct);
 

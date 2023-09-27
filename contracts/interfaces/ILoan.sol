@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -40,7 +40,7 @@ interface ILoan {
      * implemented by derived contracts.
      * @param payee The destination address of the funds.
      */
-    function withdrawalAllowed(address payee) external returns(bool);
+    // function withdrawalAllowed(address payee) external returns(bool);
 
     /**
      * @dev Withdraw accumulated balance for a {loan.lender}, forwarding all gas to the
