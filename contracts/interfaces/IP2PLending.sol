@@ -55,7 +55,7 @@ interface IP2PLending {
      *
      * Emits a {LoanCreated} event.
      */
-    function acceptLoanRequest(uint256 _loanRequestId) external;
+    function acceptLoanRequest(uint256 _loanRequestId) external returns(ILoan);
 
     /**
      * @dev Create a New Loan Offer from {msg.sender} account with `_loanAmount` amount 
@@ -77,6 +77,6 @@ interface IP2PLending {
      *
      * Emits a {LoanCreated} event.
      */
-    function acceptLoanOffer(uint256 _loanOffertId) external;
+    function acceptLoanOffer(uint256 _loanOffertId) external returns(ILoan);
 
 }

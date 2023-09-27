@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 struct Request {
     uint256 id;
-    address priceFeedContract;
-    IERC20 loanToken;
+    uint256 _loanTokenId;
     uint256 loanAmount;
     uint256 interest;
     uint256 loanDuration;
-    address owner;
+    address borrower;
+    address lender;
     bool available;
 }
