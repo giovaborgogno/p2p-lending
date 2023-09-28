@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
@@ -10,6 +10,9 @@ import "./structures/Request.sol";
 import "./structures/LoanStruct.sol";
 import "./Loan.sol";
 
+abstract contract IERC20Extented is IERC20 {     
+    function decimals() public virtual view returns (uint8); 
+}
 
 contract P2PLending is IP2PLending {
 
@@ -25,8 +28,8 @@ contract P2PLending is IP2PLending {
     AggregatorV3Interface constant private DAI_USD = AggregatorV3Interface(0x14866185B1962B63C3Ea9E03Bc1da838bab34C19);
 
     // Address contracts for ERC20 tokens
-    IERC20 constant private USDC = IERC20(0xcD6a42782d230D7c13A74ddec5dD140e55499Df9);
-    IERC20 constant private DAI = IERC20(0xcD6a42782d230D7c13A74ddec5dD140e55499Df9);
+    IERC20 constant private USDC = IERC20(0x82346f167B2b938A56AFdb694753C5BA7A2ab550);
+    IERC20 constant private DAI = IERC20(0x76c1De9Af029966200F4F572F5D0c180259cfce4);
 
     // Mapping from token ID to token address contract
     mapping(uint256 => IERC20) private _loanTokens;
@@ -69,10 +72,11 @@ contract P2PLending is IP2PLending {
      * @dev See {IP2PLending-loanRequests}.
      */
     function loanRequests() view public returns(Request[] memory){
-        Request[] memory AllRequests;
+        uint256 arrLength = _requestIdTracker.current();
+        Request[] memory AllRequests = new Request[](arrLength);
         
-        for (uint256 i = 0; i <= _requestIdTracker.current(); i++) {
-            AllRequests.push(_loanRequests(i));
+        for (uint256 i = 0; i < arrLength; i++) {
+            AllRequests[i] = _loanRequests[i];
         }
 
         return AllRequests;
@@ -89,10 +93,11 @@ contract P2PLending is IP2PLending {
      * @dev See {IP2PLending-loanOffers}.
      */
     function loanOffers() view public returns(Request[] memory){
-        Request[] memory AllOffers;
-
-        for (uint i = 0; i <= _offerIdTracker.current(); i++) {
-            AllOffers.push(_loanOffers(i));
+        uint256 arrLength = _offerIdTracker.current();
+        Request[] memory AllOffers = new Request[](arrLength);
+        
+        for (uint256 i = 0; i < arrLength; i++) {
+            AllOffers[i] = _loanOffers[i];
         }
 
         return AllOffers;
@@ -104,6 +109,8 @@ contract P2PLending is IP2PLending {
     function newLoanRequest(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId) returns(uint256){
 
         uint256 _id = _requestIdTracker.current();
+        _requestIdTracker.increment();
+
         Request memory _newRequest = Request({
             id: _id,
             loanTokenId: _loanTokenId,
@@ -126,7 +133,8 @@ contract P2PLending is IP2PLending {
      */
     function acceptLoanRequest(uint256 _loanRequestId) public returns(ILoan) {
         Request storage _request = _loanRequests[_loanRequestId];
-        require(_request.borrower != address(0) && _request.available == true);
+        require(_request.borrower != address(0) && _request.available == true, "Offer is not available");
+        require(_request.borrower != msg.sender, "Borrower and Lender are the same address account");
 
         _request.available = false;
         _request.lender = msg.sender;
@@ -142,7 +150,9 @@ contract P2PLending is IP2PLending {
      */
     function newLoanOffer(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId) returns(uint256){
         uint256 _id = _offerIdTracker.current();
-        Request memory _newRequest = Request({
+        _offerIdTracker.increment();
+
+        Request memory _newOffer = Request({
             id: _id,
             loanTokenId: _loanTokenId,
             loanAmount: _loanAmount,
@@ -161,7 +171,18 @@ contract P2PLending is IP2PLending {
     /**
      * @dev See {IP2PLending-acceptLoanOffer}.
      */
-    function acceptLoanOffer(uint256 _loanOffertId) public {}
+    function acceptLoanOffer(uint256 _loanOffertId) public returns(ILoan){
+        Request storage _offer = _loanOffers[_loanOffertId];
+        require(_offer.lender != address(0) && _offer.available == true, "Offer is not available");
+        require(_offer.lender != msg.sender, "Borrower and Lender are the same address account");
+
+        _offer.available = false;
+        _offer.borrower = msg.sender;
+
+        ILoan _iloan = _newLoan(_offer);
+
+        return _iloan;
+    }
 
     /** @dev Calculate the Weis Collateral Amount using Chain Link Price Feed Contracts.
      * @param _loanAmount Loan Amount.
@@ -172,22 +193,64 @@ contract P2PLending is IP2PLending {
      * - `_loanTokenId` must exists in {_loanTokens}
      *
      */
-    function _calculateCollateralAmount(uint256 _loanAmount, uint256 _loanTokenId)internal returns(uint256){}
+    function _calculateCollateralAmount(uint256 _loanAmount, uint256 _interest, uint256 _loanTokenId)internal view returns(uint256){
+        IERC20 ierc20 = _loanTokens[_loanTokenId];
+        AggregatorV3Interface ERC20_USD = _priceFeedContractAddresses[ierc20];
+
+        IERC20Extented ierc20Extended = IERC20Extented(address(ierc20));
+        uint8 decimals = ierc20Extended.decimals();
+
+        int256 derivatedPrice = _getDerivedPrice(ETH_USD, ERC20_USD, decimals);
+        uint256 repaymentAmount = _calculateRepaymentAmount(_loanAmount, _interest);
+
+        return (repaymentAmount * (10 ** 18)) / uint256(derivatedPrice);
+    }
+
+    function _getDerivedPrice(AggregatorV3Interface _base, AggregatorV3Interface _quote, uint8 _decimals) internal view returns (int256) {
+        require(
+            _decimals > uint8(0) && _decimals <= uint8(18),
+            "Invalid _decimals"
+        );
+        int256 decimals = int256(10 ** uint256(_decimals));
+        (, int256 basePrice, , , ) = _base.latestRoundData();
+        uint8 baseDecimals = _base.decimals();
+        basePrice = _scalePrice(basePrice, baseDecimals, _decimals);
+
+        (, int256 quotePrice, , , ) = _quote.latestRoundData();
+        uint8 quoteDecimals = _quote.decimals();
+        quotePrice = _scalePrice(quotePrice, quoteDecimals, _decimals);
+
+        return (basePrice * decimals) / quotePrice;
+    }
+
+    function _scalePrice(int256 _price, uint8 _priceDecimals, uint8 _decimals) internal pure returns (int256) {
+        if (_priceDecimals < _decimals) {
+            return _price * int256(10 ** uint256(_decimals - _priceDecimals));
+        } else if (_priceDecimals > _decimals) {
+            return _price / int256(10 ** uint256(_priceDecimals - _decimals));
+        }
+        return _price;
+    }
 
      /** @dev Calculate the Repayment Amount using `_interest` porcentage.
      * @param _loanAmount Loan Amount.
      * @param _interest interest porcentage
      *
      */
-    function _calculateRepaymentAmount(uint256 _loanAmount, uint256 _interest)internal returns(uint256){}
+    function _calculateRepaymentAmount(uint256 _loanAmount, uint256 _interest)pure internal returns(uint256){
+        uint256 repaymentAmount = _loanAmount + (_loanAmount * _interest)/100;
+        return repaymentAmount;
+    }
 
-     /** @dev Calculate the Weis Collateral Amount using Chain Link Price Feed Contracts.
+     /** @dev Create a new Loan Contract.
      * @param _request Request.
      *
      */
-    function _newLoan(Request _request)internal returns(ILoan){
+    function _newLoan(Request memory _request)internal returns(ILoan){
+        require(_request.borrower != address(0) && _request.lender != address(0), "Borrower or Lender is not valid.");
+        require(_request.borrower != _request.lender, "Borrower and Lender are the same address account");
 
-        uint256 _collateralAmount = _calculateCollateralAmount(_request.loanAmount, _request._loanTokenId);
+        uint256 _collateralAmount = _calculateCollateralAmount(_request.loanAmount, _request.interest, _request.loanTokenId);
         uint256 _repaymentAmount = _calculateRepaymentAmount(_request.loanAmount, _request.interest);
 
         LoanStruct memory _loanStruct = LoanStruct({
@@ -199,13 +262,15 @@ contract P2PLending is IP2PLending {
             borrower: _request.borrower,
             lender: _request.lender,
             loanDuration: _request.loanDuration,
-            dueDate: block.timestamp + _request.loanDuration,
+            dueDate: 0,
             active: false
         });
 
-        Loan memory _loan = new Loan(_loanStruct);
+        Loan _loan = new Loan(_loanStruct);
 
         emit LoanCreated(ILoan(_loan), _loanStruct);
+
+        _loan.transferOwnership(_request.borrower);
 
         return ILoan(_loan);
     }
