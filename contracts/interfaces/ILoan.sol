@@ -36,13 +36,6 @@ interface ILoan {
     function payERC20Loan() external;
 
     /**
-     * @dev Returns whether an address is allowed to withdraw their funds. To be
-     * implemented by derived contracts.
-     * @param payee The destination address of the funds.
-     */
-    // function withdrawalAllowed(address payee) external returns(bool);
-
-    /**
      * @dev Withdraw accumulated balance for a {loan.lender}, forwarding all gas to the
      * recipient.
      *
