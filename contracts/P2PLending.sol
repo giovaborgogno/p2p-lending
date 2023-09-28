@@ -270,7 +270,7 @@ contract P2PLending is IP2PLending {
 
         emit LoanCreated(ILoan(_loan), _loanStruct);
 
-        _loan.transferOwnership(_request.borrower);
+        _loan.transferOwnership(address(_loan));
 
         return ILoan(_loan);
     }

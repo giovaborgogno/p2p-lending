@@ -20,7 +20,7 @@ interface ILoan {
      *
      * Emits a {StartLoan} event.
      */
-    function lendERC20() external;
+    function depositETH() external;
 
     /**
      * @dev Moves {loan.repaymentAmount} {loan.loanToken} from {loan.borrower} to {loan.lender} using the
