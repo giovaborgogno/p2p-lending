@@ -43,16 +43,17 @@ contract Loan is ConditionalEscrow, ILoan {
     /**
      * @dev See {ILoan-lendERC20}.
      */
-    function depositETH() public onlyBorrower {
+    function depositETH() public payable onlyBorrower {
         require(loan.active == false, "Loan is already active");
+        require(loan.loanToken.allowance(loan.lender, address(this)) >= loan.loanAmount);
 
         deposit(loan.borrower);
         if (depositsOf(loan.borrower) >= loan.collateralAmount){
 
             require(loan.loanToken.transferFrom(loan.lender, loan.borrower, loan.loanAmount));
             uint256 _dueDate = block.timestamp + loan.loanDuration;
-            _setDueDate(_dueDate);
             
+            _setDueDate(_dueDate);
             _setActive(true);
 
             emit StartLoan(block.timestamp);
@@ -64,7 +65,7 @@ contract Loan is ConditionalEscrow, ILoan {
      * @dev See {ILoan-payERC20Loan}.
      */
     function payERC20Loan() public onlyBorrower onlyActive {
-        require(loan.loanToken.transferFrom(loan.borrower, loan.lender, loan.repaymentAmount));
+        require(loan.loanToken.transfer(loan.lender, loan.repaymentAmount));
 
         withdraw(payable (loan.borrower));
         _setActive(false);
@@ -119,8 +120,6 @@ contract Loan is ConditionalEscrow, ILoan {
      *
      */
     function _setActive(bool _active) internal {
-         require(!loan.active, "Loan is already active");
-
          loan.active = _active;
     }
 }
