@@ -48,7 +48,7 @@ contract Loan is ConditionalEscrow, ILoan {
         require(loan.loanToken.allowance(loan.lender, address(this)) >= loan.loanAmount, "Lender does not approve the loan yet.");
 
         deposit(loan.borrower);
-        if (depositsOf(loan.borrower) >= loan.collateralAmount){
+        if (depositsOf(loan.borrower) >= loan.collateralAmount - 15){
 
             require(loan.loanToken.transferFrom(loan.lender, loan.borrower, loan.loanAmount), "Error trasfering ERC20 from lender");
             uint256 _dueDate = block.timestamp + loan.loanDuration;
@@ -56,7 +56,7 @@ contract Loan is ConditionalEscrow, ILoan {
             _setDueDate(_dueDate);
             _setActive(true);
 
-            emit StartLoan(block.timestamp);
+            emit LoanStarted(block.timestamp);
         }
         
     }
@@ -66,6 +66,7 @@ contract Loan is ConditionalEscrow, ILoan {
      */
     function payERC20Loan() public onlyBorrower onlyActive {
         require(loan.loanToken.allowance(loan.borrower, address(this)) >= loan.repaymentAmount, "Borrower does not approve the loan yet.");
+        require(block.timestamp < loan.dueDate, "Loan has expired.");
         require(loan.loanToken.transferFrom(loan.borrower, loan.lender, loan.repaymentAmount), "Error transfering ERC20 from borrower.");
 
         _setActive(false);

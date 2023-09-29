@@ -9,10 +9,20 @@ import "../interfaces/ILoan.sol";
 
 interface IP2PLending {
 
+    /**
+     * @dev Emitted when Request with `requestId` id is created.
+     */
+    event LoanRequestCreated(uint256 requestId);
+
+    /**
+     * @dev Emitted when Request with `offerId` id is created.
+     */
+    event LoanOfferCreated(uint256 offerId);
+
      /**
      * @dev Emitted when `_loan` token is created with a `_loanSctruct`.
      */
-    event LoanCreated(ILoan _loan , LoanStruct _loanStruct);
+    event LoanCreated(address indexed loan);
 
     /**
      * @dev Returns the `_requestId` Loan Request.
@@ -44,7 +54,7 @@ interface IP2PLending {
      * - `_loanTokenId` token must exist.
      *
      */
-    function newLoanRequest(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) external returns(uint256);
+    function newLoanRequest(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) external;
 
     /**
      * @dev Create a New Loan Contract from `_loanRequestId` Request.
@@ -55,7 +65,7 @@ interface IP2PLending {
      *
      * Emits a {LoanCreated} event.
      */
-    function acceptLoanRequest(uint256 _loanRequestId) external returns(ILoan);
+    function acceptLoanRequest(uint256 _loanRequestId) external;
 
     /**
      * @dev Create a New Loan Offer from {msg.sender} account with `_loanAmount` amount 
@@ -66,7 +76,7 @@ interface IP2PLending {
      * - `_loanTokenId` token must exist.
      *
      */
-    function newLoanOffer(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) external returns(uint256);
+    function newLoanOffer(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) external;
 
     /**
      * @dev Create a New Loan Contract from `_loanOffertId` Offer.
@@ -77,6 +87,6 @@ interface IP2PLending {
      *
      * Emits a {LoanCreated} event.
      */
-    function acceptLoanOffer(uint256 _loanOffertId) external returns(ILoan);
+    function acceptLoanOffer(uint256 _loanOffertId) external;
 
 }
