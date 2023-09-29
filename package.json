@@ -4,7 +4,18 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy-sepolia": "npx hardhat --network sepolia run scripts/deploy.js",
+    "event-listener": "npx hardhat --network sepolia run scripts/eventListeners/events.js",
+    "new-request": "npx hardhat --network sepolia run scripts/generate/P2PLending/newLoanRequest.js",
+    "new-offer": "npx hardhat --network sepolia run scripts/generate/P2PLending/newLoanOffer.js",
+    "accept-request": "npx hardhat --network sepolia run scripts/generate/P2PLending/acceptLoanRequest.js",
+    "accept-offer": "npx hardhat --network sepolia run scripts/generate/P2PLending/acceptLoanOffer.js",
+    "approve": "npx hardhat --network sepolia run scripts/generate/ERC20/approve.js",
+    "get-loan": "npx hardhat --network sepolia run scripts/generate/Loan/getLoan.js",
+    "deposit-eth": "npx hardhat --network sepolia run scripts/generate/Loan/depositEth.js",
+    "pay-erc20": "npx hardhat --network sepolia run scripts/generate/Loan/payERC20Loan.js",
+    "claim-collateral": "npx hardhat --network sepolia run scripts/generate/Loan/claimCollateral.js"
   },
   "author": "",
   "license": "ISC",
@@ -15,6 +26,7 @@
   "dependencies": {
     "@chainlink/contracts": "^0.7.1",
     "@openzeppelin/contracts": "^4.9.3",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "prompt-sync": "^4.2.0"
   }
 }

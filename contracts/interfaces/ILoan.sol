@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ILoan {
 
-    event StartLoan(uint256 date);
+    event LoanStarted(uint256 date);
     event LoanPaid(uint256 date);
 
     /**
@@ -20,7 +20,7 @@ interface ILoan {
      *
      * Emits a {StartLoan} event.
      */
-    function depositETH() external;
+    function depositETH() payable external;
 
     /**
      * @dev Moves {loan.repaymentAmount} {loan.loanToken} from {loan.borrower} to {loan.lender} using the
