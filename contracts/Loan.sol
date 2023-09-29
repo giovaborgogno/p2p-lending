@@ -3,11 +3,14 @@ pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/escrow/ConditionalEscrow.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/ILoan.sol";
 import "./structures/LoanStruct.sol";
 
 
 contract Loan is ConditionalEscrow, ILoan {
+
+    using Address for address payable;
 
     // Loan Information
     LoanStruct public loan;
@@ -32,50 +35,66 @@ contract Loan is ConditionalEscrow, ILoan {
         _;
     }
 
+    modifier onlyActive(){
+        require(loan.active, "Loan is not active");
+        _;
+    }
+
     /**
      * @dev See {ILoan-lendERC20}.
      */
-    function lendERC20() public onlyLender {
-        /**
-     * @dev Moves {loan.loanAmount} {loan.loanToken} from {loan.lender} to {loan.borrower} using the
-     * allowance mechanism.
-     *
-     * Requeriments:
-     *
-     * - DepositsOf {loan.borrower} must be equal {loan.collateralAmount}.
-     * - {loan.false} must be true.
-     * - Caller must be the {loan.lender}
-     *
-     * Emits a {StartLoan} event.
-     */
+    function depositETH() public payable onlyBorrower {
+        require(loan.active == false, "Loan is already active");
+        require(loan.loanToken.allowance(loan.lender, address(this)) >= loan.loanAmount);
 
+        deposit(loan.borrower);
+        if (depositsOf(loan.borrower) >= loan.collateralAmount){
+
+            require(loan.loanToken.transferFrom(loan.lender, loan.borrower, loan.loanAmount));
+            uint256 _dueDate = block.timestamp + loan.loanDuration;
+            
+            _setDueDate(_dueDate);
+            _setActive(true);
+
+            emit StartLoan(block.timestamp);
+        }
         
     }
 
     /**
      * @dev See {ILoan-payERC20Loan}.
      */
-    function payERC20Loan() public onlyBorrower {
-        
+    function payERC20Loan() public onlyBorrower onlyActive {
+        require(loan.loanToken.transfer(loan.lender, loan.repaymentAmount));
+
+        withdraw(payable (loan.borrower));
+        _setActive(false);
+        emit LoanPaid(block.timestamp);
+        selfdestruct(payable (loan.borrower));
+
     }
 
     /**
      * @dev See {ILoan-withdrawalAllowed}.
      */
     function withdrawalAllowed(address payee) view public override returns(bool){
-        require(!loan.active, "Loan is already active");
+        require(payee == loan.borrower);
+        return !loan.active;
     }
 
     /**
      * @dev See {ILoan-claimCollateral}.
      */
-    function claimCollateral() public onlyLender {
+    function claimCollateral() public onlyLender onlyActive {
         require(block.timestamp > loan.dueDate, "Collateral can't be claimed yet");
         
-        uint256 payment = _deposits[loan.borrower];
-        _deposits[loan.borrower] = 0;
-        loan.lender.sendValue(payment);
+        uint256 payment = depositsOf(loan.borrower);
+        address payable payee = payable (loan.lender);
+        payee.sendValue(payment);
         emit Withdrawn(loan.lender, payment);
+        _setActive(false);
+        selfdestruct(payable (loan.lender));
+        
     }
 
     /**
@@ -101,8 +120,6 @@ contract Loan is ConditionalEscrow, ILoan {
      *
      */
     function _setActive(bool _active) internal {
-         require(!loan.active, "Loan is already active");
-
          loan.active = _active;
     }
 }
