@@ -72,7 +72,7 @@ async function main() {
     const logEvent = (event) => {
         // console.log(`owner: ${owner}\napproved: ${approved}\nvalue: ${value}`)
         let contractName = addressToName[event.log.address]
-        console.log(`\x1b[96mEvent: ${event.fragment.name} | From: ${contractName}\n \x1b[0m`)
+        console.log(`\x1b[96m\nEvent: ${event.fragment.name} | From: ${contractName} \x1b[0m`)
         events[contractName][event.fragment.name](...event.log.args)
     } 
 
