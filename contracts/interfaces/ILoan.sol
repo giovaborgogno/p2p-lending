@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ILoan {
 
-    event StartLoan(uint256 date);
+    event LoanStarted(uint256 date);
     event LoanPaid(uint256 date);
 
     /**

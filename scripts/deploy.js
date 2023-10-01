@@ -1,11 +1,12 @@
 const hre = require("hardhat");
+const ethers = hre.ethers;
 async function main() {
-    const [deployer] = await hre.ethers.getSigners();
+    const [deployer] = await ethers.getSigners();
   
     console.log("Deploying contracts with the account:", deployer.address);
     
     // make sure to replace the "GoofyGoober" reference with your own ERC-20 name!
-    const _contract = await hre.ethers.deployContract("P2PLending")
+    const _contract = await ethers.deployContract("P2PLending")
 
     await _contract.waitForDeployment();
   

@@ -106,7 +106,7 @@ contract P2PLending is IP2PLending {
     /**
      * @dev See {IP2PLending-newLoanRequest}.
      */
-    function newLoanRequest(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId) returns(uint256){
+    function newLoanRequest(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId){
 
         uint256 _id = _requestIdTracker.current();
         _requestIdTracker.increment();
@@ -124,31 +124,29 @@ contract P2PLending is IP2PLending {
 
         _loanRequests[_id] = _newRequest;
 
-        return _id;
+        emit LoanRequestCreated(_id);
 
     }
 
     /**
      * @dev See {IP2PLending-acceptLoanRequest}.
      */
-    function acceptLoanRequest(uint256 _loanRequestId) public returns(ILoan) {
+    function acceptLoanRequest(uint256 _loanRequestId) public {
         Request storage _request = _loanRequests[_loanRequestId];
-        require(_request.borrower != address(0) && _request.available == true, "Offer is not available");
+        require(_request.borrower != address(0) && _request.available == true, "Request is not available");
         require(_request.borrower != msg.sender, "Borrower and Lender are the same address account");
 
         _request.available = false;
         _request.lender = msg.sender;
 
-        ILoan _iloan = _newLoan(_request);
-
-        return _iloan;
+        _newLoan(_request);
 
     }
 
     /**
      * @dev See {IP2PLending-newLoanOffer}.
      */
-    function newLoanOffer(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId) returns(uint256){
+    function newLoanOffer(uint256 _loanTokenId, uint256 _loanAmount, uint256 _interest, uint256 _loanDuration) public loanTokenIdExists(_loanTokenId){
         uint256 _id = _offerIdTracker.current();
         _offerIdTracker.increment();
 
@@ -165,13 +163,13 @@ contract P2PLending is IP2PLending {
 
         _loanOffers[_id] = _newOffer;
 
-        return _id;
+        emit LoanOfferCreated(_id);
     }
 
     /**
      * @dev See {IP2PLending-acceptLoanOffer}.
      */
-    function acceptLoanOffer(uint256 _loanOffertId) public returns(ILoan){
+    function acceptLoanOffer(uint256 _loanOffertId) public{
         Request storage _offer = _loanOffers[_loanOffertId];
         require(_offer.lender != address(0) && _offer.available == true, "Offer is not available");
         require(_offer.lender != msg.sender, "Borrower and Lender are the same address account");
@@ -179,9 +177,7 @@ contract P2PLending is IP2PLending {
         _offer.available = false;
         _offer.borrower = msg.sender;
 
-        ILoan _iloan = _newLoan(_offer);
-
-        return _iloan;
+        _newLoan(_offer);
     }
 
     /** @dev Calculate the Weis Collateral Amount using Chain Link Price Feed Contracts.
@@ -246,7 +242,7 @@ contract P2PLending is IP2PLending {
      * @param _request Request.
      *
      */
-    function _newLoan(Request memory _request)internal returns(ILoan){
+    function _newLoan(Request memory _request)internal{
         require(_request.borrower != address(0) && _request.lender != address(0), "Borrower or Lender is not valid.");
         require(_request.borrower != _request.lender, "Borrower and Lender are the same address account");
 
@@ -268,11 +264,10 @@ contract P2PLending is IP2PLending {
 
         Loan _loan = new Loan(_loanStruct);
 
-        emit LoanCreated(ILoan(_loan), _loanStruct);
+        emit LoanCreated(address(_loan));
 
         _loan.transferOwnership(_request.borrower);
 
-        return ILoan(_loan);
     }
 
 
